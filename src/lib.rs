@@ -1,10 +1,8 @@
 mod util;
-#[derive(Copy, Clone)]
-enum Color{
-    White,
-    Black
-}
-
+mod board;
+mod piece;
+mod pawn;
+mod rook;
 
 struct PGN_tracker {
 	
