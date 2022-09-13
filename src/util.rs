@@ -1,7 +1,7 @@
 use std::ops;
 use crate::board::Board;
 use crate::piece::Piece;
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialOrd, PartialEq)]
 pub enum Color{
     White,
     Black
