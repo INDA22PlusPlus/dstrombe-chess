@@ -2,7 +2,8 @@ use crate::board::*;
 use crate::util::*;
 use crate::piece::*;
 
-struct Pawn {    
+// TODO: refactor, this was written before introducing many of the utils
+pub struct Pawn {    
     color : Color,
     pos : Pos,
     piece_type : PieceType
@@ -22,7 +23,7 @@ impl Piece for Pawn {
     fn get_type(&self) -> PieceType {
         self.piece_type
     }
-   	fn legal_moves(&self, board : Board) -> Vec<Pos> {
+   	fn legal_moves(&self, board : &Board) -> Vec<Pos> {
    		let mut legal_moves = Vec::new();
    		
         // white pawns move up the board
@@ -56,7 +57,30 @@ impl Piece for Pawn {
                 }  
             }
    		}
-
+        legal_moves.append(&mut match board.piece_blocks_check(self as &dyn Piece){
+            true => {
+               self.threat_map(&board)
+            }
+            false => Vec::new()
+        });
+   	    legal_moves	
+   	}
+    fn threat_map(&self, board : &Board) -> Vec<Pos> {
+        
+        let mut legal_moves = Vec::new();
+   		
+        // white pawns move up the board
+   		let direction = match self.get_color() {
+   			Color::White => -1,
+   			Color::Black => 1
+   		};
+   		
+   		// the ranks where the pawns would nominally spawn,
+   		// to
+   		let starting_rank = match self.get_color() {
+   			Color::White => 6,
+   			Color::Black => 1
+   		};
         // check capture moves incl en passant
         // TODO: evaluate whether or not to reuse the code that is semi-duped within
         // bc doing so would probably make it less readable
@@ -64,45 +88,25 @@ impl Piece for Pawn {
             
             // capture to the right
             // lower bound check unnecessary
+            let can_en_passant = board.en_passant_target_square.is_some();
             if self.pos.x + 1 <= 7 { 
-                //normal capture
-                if board.board[(self.pos.x + 1) as usize][(self.pos.y + direction) as usize].is_some() {
-                    legal_moves.push(Pos {x : self.pos.x + 1, y : self.pos.y + direction})
-                }
-
-                // en passant
-                // same capture logic, but we check that the square next to the pawn is another
-                // pawn and that that pawn had double moved
-                if board.board[(self.pos.x + 1) as usize][(self.pos.y) as usize].is_some() {
-                    if board.board[(self.pos.x + 1) as usize][(self.pos.y) as usize].as_ref().unwrap().get_type() == PieceType::Pawn { 
-                        // checking that the pawn also did in fact double move 
-                        if board.last_move_was_double_pawn_move {
-                            legal_moves.push(Pos {x : self.pos.x + 1, y : self.pos.y}); 
-                        }
-                    }
+                let attack = Pos {x : self.pos.x +1, y : (self.pos.y + direction)};
+                // check if either the square is an enemy, or the en passant target square
+                // the en passant target square can only be attacked if an enemy double-moved
+                if board[attack].is_some() && (board[attack].as_ref().unwrap().get_color() != self.color || (can_en_passant && attack == board.en_passant_target_square.unwrap())) {
+                    legal_moves.push(attack)
                 }
             }
             // capture to the left
             // upper bound check unnecessary
             if self.pos.x - 1 >= 0 { 
-                if board.board[(self.pos.x - 1) as usize][(self.pos.y + direction) as usize].is_some() {
-                    legal_moves.push(Pos {x : self.pos.x - 1, y : self.pos.y + direction})
-                }
-                
-                // en passant
-                // same capture logic, but we check that the square next to the pawn is another
-                // pawn and that that pawn had double moved
-                if board.board[(self.pos.x - 1) as usize][(self.pos.y) as usize].is_some() {
-                    if board.board[(self.pos.x - 1) as usize][(self.pos.y) as usize].as_ref().unwrap().get_type() == PieceType::Pawn { 
-                        // checking that the pawn also did in fact double move 
-                        if board.last_move_was_double_pawn_move {
-                            legal_moves.push(Pos {x : self.pos.x - 1, y : self.pos.y}); 
-                        }
-                    }
+                let attack = Pos {x : self.pos.x - 1, y : (self.pos.y + direction)};
+                if board[attack].is_some() && (board[attack].as_ref().unwrap().get_color() != self.color ||  (can_en_passant && attack == board.en_passant_target_square.unwrap())) {
+                    legal_moves.push(attack)
                 }
             }
+            
         }
-
-   	    legal_moves	
-   	}
+        legal_moves
+    }
 }

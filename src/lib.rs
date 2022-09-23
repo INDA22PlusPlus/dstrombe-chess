@@ -1,14 +1,13 @@
-mod util;
-mod board;
+pub mod util;
+pub mod board;
 mod piece;
 mod pawn;
+mod knight;
+mod bishop;
 mod rook;
-struct PGN_tracker {
-	
-}
-struct FEN {
-	
-}
+mod queen;
+mod king;
+
 
 
 

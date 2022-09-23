@@ -1,6 +1,7 @@
 use std::ops;
 use crate::board::Board;
 use crate::piece::Piece;
+use std::fmt;
 #[derive(Copy, Clone, PartialOrd, PartialEq)]
 pub enum Color{
     White,
@@ -59,6 +60,61 @@ pub fn piece_at_square(pos : Pos, board : &Board) -> Option<&'_ Box<dyn Piece + 
     }
 } 
 
+// utility that checks if a given piece can move in a direction and for how long it can move in
+// said direction, allowing the caller to specify a max range for eg. implementing the king moving
+// only one square
+pub fn cast_ray(cast_dir : Pos, cast_range : i8, casting_piece : &Box<&dyn Piece>, board: &Board) -> Vec<Pos> {
+    let mut legal_moves = Vec::new();
+    let mut square_to_check = casting_piece.get_pos() + cast_dir; 
+    loop {
+        if !board.is_within_board(square_to_check) {
+            break;
+        }
+        let check = &board[square_to_check];
+        match check {
+            Some(collided_piece) => {
+                // we stop upon encountering a piece, but also add the encountered piece if it
+                // belongs to the opposing color, so that it may be captured
+                if collided_piece.get_color() != casting_piece.get_color() {
+                    legal_moves.push(square_to_check);
+                }
+                break;
+            }
+            None => {}
+        };
+        square_to_check = casting_piece.get_pos() + cast_dir; 
+    }
+    legal_moves
+}
+
+pub fn do_straight_move_check(piece : &Box<&dyn Piece>, board : &Board) -> Vec<Pos> {
+    let mut legal_moves : Vec<Pos> = Vec::new();
+    let mut moves_right = cast_ray(Pos {x : 1, y : 0}, i8::MAX, piece, &board); 
+    let mut moves_left = cast_ray(Pos {x : -1, y : 0}, i8::MAX, piece, &board); 
+    let mut moves_up = cast_ray(Pos {x : 0, y : 1}, i8::MAX, piece, &board); 
+    let mut moves_down = cast_ray(Pos {x : 0, y : -1}, i8::MAX, piece, &board); 
+    
+    legal_moves.append(&mut moves_right);
+    legal_moves.append(&mut moves_left);
+    legal_moves.append(&mut moves_up);
+    legal_moves.append(&mut moves_down);
+    legal_moves
+}
+
+pub fn do_diag_move_check(piece : &Box<&dyn Piece>, board : &Board) -> Vec<Pos> {
+    let mut legal_moves : Vec<Pos> = Vec::new();
+    let mut moves_right = cast_ray(Pos {x : 1, y : 1}, i8::MAX, piece, &board); 
+    let mut moves_left = cast_ray(Pos {x : -1, y : 1}, i8::MAX, piece, &board); 
+    let mut moves_up = cast_ray(Pos {x : 1, y : -1}, i8::MAX, piece, &board); 
+    let mut moves_down = cast_ray(Pos {x : 1, y : -1}, i8::MAX, piece, &board); 
+    
+    legal_moves.append(&mut moves_right);
+    legal_moves.append(&mut moves_left);
+    legal_moves.append(&mut moves_up);
+    legal_moves.append(&mut moves_down);
+    legal_moves
+
+}
 #[cfg(test)]
 mod tests {
 	use super::*;
