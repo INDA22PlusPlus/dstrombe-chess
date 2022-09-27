@@ -148,7 +148,7 @@ impl Board {
     pub fn new() -> Self {
         Self::create_starting_board()
     }
-    //
+    
     pub fn move_causes_self_check(&self, piece : &dyn Piece, attempt : Pos, promotion : Option<PieceType>) -> bool {
         let mut copy = self.clone();
         copy.perform_move(piece.get_pos(), attempt, promotion);

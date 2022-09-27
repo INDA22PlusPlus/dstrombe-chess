@@ -7,6 +7,7 @@ pub struct Bishop {
     pos : Pos,
     piece_type : PieceType
 }
+
 impl Bishop {
     pub fn new (color : Color, pos : Pos) -> Self {
         Self {color, pos, piece_type : PieceType::Bishop}
