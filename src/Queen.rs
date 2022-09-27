@@ -24,12 +24,8 @@ impl Piece for Queen {
         self.piece_type
     }
     fn legal_moves(&self, board : &Board) -> Vec<Pos> {
-        match board.piece_blocks_check(self as &dyn Piece){
-            true => {
-               self.threat_map(&board)
-            }
-            false => Vec::new()
-        }
+        let legal_moves =  self.threat_map(&board).into_iter().filter(|m| !board.move_causes_self_check(self as &dyn Piece, (m.clone()), None));
+        legal_moves.collect::<Vec<Pos>>()
     }
     // we have to check both the straight and the diagonal avenues of movement to get the full sets
     // of moves for the queen

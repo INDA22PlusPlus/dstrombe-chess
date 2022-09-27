@@ -12,19 +12,8 @@ impl Pawn {
     pub fn new (color : Color, pos : Pos) -> Self {
         Self {color, pos, piece_type : PieceType::Pawn}
     }
-}
-impl Piece for Pawn {
-	fn get_color(&self) -> Color {
-		self.color
-	}
-    fn get_pos(&self) -> Pos {
-        self.pos
-    }
-    fn get_type(&self) -> PieceType {
-        self.piece_type
-    }
-   	fn legal_moves(&self, board : &Board) -> Vec<Pos> {
-   		let mut legal_moves = Vec::new();
+    fn normal_moves(&self, board : &Board) -> Vec<Pos> {
+        let mut legal_moves = Vec::new();
    		
         // white pawns move up the board
    		let direction = match self.get_color() {
@@ -57,14 +46,27 @@ impl Piece for Pawn {
                 }  
             }
    		}
-        legal_moves.append(&mut match board.piece_blocks_check(self as &dyn Piece){
-            true => {
-               self.threat_map(&board)
-            }
-            false => Vec::new()
-        });
-   	    legal_moves	
+        self.threat_map(&board)
+        
+    }
+}
+impl Piece for Pawn {
+	fn get_color(&self) -> Color {
+		self.color
+	}
+    fn get_pos(&self) -> Pos {
+        self.pos
+    }
+    fn get_type(&self) -> PieceType {
+        self.piece_type
+    }
+   	fn legal_moves(&self, board : &Board) -> Vec<Pos> {
+        let mut a = self.threat_map(&board);
+        a.append(&mut self.normal_moves(&board));
+        let legal_moves =  a.into_iter().filter(|m| !board.move_causes_self_check(self as &dyn Piece, (m.clone()), None));
+        legal_moves.collect::<Vec<Pos>>()
    	}
+    
     fn threat_map(&self, board : &Board) -> Vec<Pos> {
         
         let mut legal_moves = Vec::new();
@@ -110,3 +112,5 @@ impl Piece for Pawn {
         legal_moves
     }
 }
+
+

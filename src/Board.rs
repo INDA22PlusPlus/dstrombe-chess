@@ -8,6 +8,7 @@ use crate::bishop::*;
 use crate::knight::*;
 use crate::pawn::*;
 use std::ops::{Index, IndexMut};
+use std::result::Result::Ok;
 
 // this is what we have to do since we can't implement Clone on traits
 // we have to instead keep track of history in order to revert moves
@@ -26,7 +27,6 @@ pub struct HistoryItem {
 	pub qs_castle_allowed_white : bool,
 	pub ks_castle_allowed_black : bool,
 	pub qs_castle_allowed_black : bool,
-    pub last_move_was_double_pawn_move : bool,
     pub move_cnt : i32,
 }
 
@@ -55,7 +55,6 @@ pub struct Board {
 	pub qs_castle_allowed_white : bool,
 	pub ks_castle_allowed_black : bool,
 	pub qs_castle_allowed_black : bool,
-    pub last_move_was_double_pawn_move : bool,
     pub move_cnt : i32,
     // quick reference I found that makes sense for those confused about Box<dyn Trait>
     // "Each trait object may have a different size, but all elements in Vec must have the same size. 
@@ -75,7 +74,7 @@ impl Board {
         let starting_fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
         return Board::from_fen(starting_fen.to_owned());
     }
-
+    
     pub fn print(&self, highlight: Option<Vec<Pos>>) -> String {
         let mut built : String = "".to_string();
         built.push_str(&format!("Turn {}\n", self.move_cnt));
@@ -150,11 +149,12 @@ impl Board {
         Self::create_starting_board()
     }
     //
-    pub fn piece_blocks_check(&self, piece : &dyn Piece) -> bool {
+    pub fn move_causes_self_check(&self, piece : &dyn Piece, attempt : Pos, promotion : Option<PieceType>) -> bool {
         let mut copy = self.clone();
-        copy[piece.get_pos()] = None;
+        copy.perform_move(piece.get_pos(), attempt, promotion);
         copy.is_check_for(piece.get_color())
     }
+    
     pub fn is_check_for(&self, color : Color) -> bool {
         let king = self.get_king(color);
         for row in &self.board {
@@ -173,6 +173,7 @@ impl Board {
         }
         false
     }
+    
     pub fn is_game_over() -> Option<GameOver>{
         None
     }
@@ -185,18 +186,22 @@ impl Board {
             Some(piece) => piece.legal_moves(&self)
         }
     }
-    pub fn perform_move(&mut self, from : Pos, to : Pos) {
+    
+    pub fn perform_move(&mut self, from : Pos, to : Pos,  promotion : Option<PieceType>) -> Result<(), &'static str>{
         let mut from_piece = self[from].as_ref();
         let mut captured_piece = self[to].clone();
         
+        if !from_piece.is_some() {
+            return Err("from is None, impossible board state");
+        }
+        if !(from_piece.unwrap().legal_moves(&self).contains(&to)) {
+            return Err("Illegal move");
+        }
         // check if we are promoting
-        let promoted = (to.y == 7 || to.x == 0) && from_piece.expect("from is None, impossible board state").get_type() == PieceType::Pawn;
-        let promoted_at = match promoted {
-            true => Some(from),
-            false => None
-        };
+        let promoted = (to.y == 7 || to.x == 0) && from_piece.unwrap().get_type() == PieceType::Pawn;
+        
         // keep track of en-passant
-        let ep_square = match from_piece.expect("from is None, impossible board state").get_type() == PieceType::Pawn {
+        let ep_square = match from_piece.unwrap().get_type() == PieceType::Pawn {
             true => {
                 if (to.y - from.y) == 2 {
                     Some(to)
@@ -210,24 +215,7 @@ impl Board {
         };
 
         let delta_ep_target_square = (self.en_passant_target_square.clone(), ep_square);
-        let generated_history = HistoryItem {
-            moved_to : to,
-            moved_from : from,
-            captured_piece : captured_piece,
-            promoted_at : promoted_at,
-            delta_ep_target_square : delta_ep_target_square,
-
-            ///ughghh yes bad v bad
-            turn : self.turn,
-            fiftymove_counter : self.fiftymove_counter,
-            en_passant_target_square : self.en_passant_target_square,
-            ks_castle_allowed_white : self.ks_castle_allowed_white,
-            qs_castle_allowed_white : self.qs_castle_allowed_white,
-            ks_castle_allowed_black : self.ks_castle_allowed_black,
-            qs_castle_allowed_black : self.qs_castle_allowed_black,
-            last_move_was_double_pawn_move : self.last_move_was_double_pawn_move,
-            move_cnt : self.move_cnt,
-        };
+        
 
         self.move_cnt += 1;
         self.fiftymove_counter += 1; // FIXME
@@ -236,9 +224,26 @@ impl Board {
             Color::Black => Color::White,
         };
         let from_piece = self[from].clone();
-        self[to] = from_piece.clone();
-        self[from] = None;
 
+        if promoted && promotion.is_some() {
+            let promotion_piece : Option<Box<dyn Piece>>;
+            match(promotion.unwrap()) {
+                PieceType::Pawn   =>  return Err("Cannot promote to a pawn"),
+                PieceType::Knight =>  { promotion_piece = Some(Box::new(Knight::new(from_piece.unwrap().get_color(), to))); },
+                PieceType::Bishop =>  { promotion_piece = Some(Box::new(Bishop::new(from_piece.unwrap().get_color(), to))); },
+                PieceType::Rook   =>  { promotion_piece = Some(Box::new(Rook::new(from_piece.unwrap().get_color(), to))); },
+                PieceType::Queen  =>  { promotion_piece = Some(Box::new(Queen::new(from_piece.unwrap().get_color(), to))); },
+                PieceType::King   =>  { promotion_piece = Some(Box::new(King::new(from_piece.unwrap().get_color(), to))); },
+            };
+            self[to] = promotion_piece.clone();
+
+        }
+        else {
+            self[to] = from_piece.clone();
+        }
+
+        self[from] = None;
+        Ok(())
         //generated_history
     }
     
@@ -253,7 +258,6 @@ impl Board {
         self.qs_castle_allowed_white = history.qs_castle_allowed_white;
         self.ks_castle_allowed_black = history.ks_castle_allowed_black;
         self.qs_castle_allowed_black = history.qs_castle_allowed_black;
-        self.last_move_was_double_pawn_move = history.last_move_was_double_pawn_move;
         self.move_cnt = history.move_cnt;
         self[history.moved_to] = history.captured_piece;
     }
@@ -291,14 +295,9 @@ impl Board {
                         }
                         // check if every piece is able to defend against the check
                         // if not then it's mate
-                        for attempted_move in piece.legal_moves(&self) {
-                            let mut board_clone = self.clone();
-                            board_clone.perform_move(piece.get_pos(), attempted_move);
-                            if !board_clone.is_check_for(color) {
-                                found_defense = true;
-                                break;
-                            }
-                        }
+                        // if you have no moves then it is mate as the king will remain
+                        //checked after every move
+                        found_defense = piece.legal_moves(&self).len() != 0;
                     }
                 }
             }
@@ -326,7 +325,6 @@ impl Board {
         let mut ks_castle_allowed_black = false;
         let mut qs_castle_allowed_black = false;
         let mut qs_castle_allowed_white = false;
-        let last_move_was_double_pawn_move = false;
         let mut move_cnt = 1; // it starts at 1
         for (i, rank) in ranks.iter().enumerate() {
             let mut rank_to_add = ArrayVec::<_, 8>::new();
@@ -421,7 +419,6 @@ impl Board {
             ks_castle_allowed_black,
             qs_castle_allowed_white,
             qs_castle_allowed_black,
-            last_move_was_double_pawn_move,
             move_cnt,
             board
         }
@@ -463,3 +460,5 @@ impl IndexMut<Pos> for Board {
         &mut self.board[pos.x as usize][pos.y as usize]
     }
 }
+
+

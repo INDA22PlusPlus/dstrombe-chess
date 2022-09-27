@@ -35,6 +35,7 @@ pub trait Piece {
     // could not think up any better solution
     fn get_type(&self) -> PieceType;
 }
+
 //ok mb we can clone piece using this trick
 impl Clone for Box<dyn Piece> {
     fn clone(&self) -> Box<dyn Piece> {
