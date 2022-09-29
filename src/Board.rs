@@ -163,7 +163,7 @@ impl Board {
         let mut copy = self.clone();
         copy.perform_move(piece.get_pos(), attempt, promotion);
         let z = copy.is_check_for(piece.get_color());
-        z
+        z && self.turn != piece.get_color() 
     }
     
     pub fn is_check_for(&self, color : Color) -> bool {
