@@ -1,6 +1,6 @@
 pub mod util;
 pub mod board;
-mod piece;
+pub mod piece;
 mod pawn;
 mod knight;
 mod bishop;
