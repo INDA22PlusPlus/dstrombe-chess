@@ -13,7 +13,9 @@ impl Pawn {
         Self {color, pos, piece_type : PieceType::Pawn}
     }
     fn normal_moves(&self, board : &Board) -> Vec<Pos> {
-        let mut legal_moves = Vec::new();
+        
+        
+        let mut legal_moves : Vec<Pos> = Vec::new();
    		
         // white pawns move up the board
    		let direction = match self.get_color() {
@@ -31,23 +33,28 @@ impl Pawn {
         // check moves where no captures are involved (forward moves)
         // we bounds check before any potential OOB array access
    		if self.pos.y + direction >= 0 && self.pos.y + direction <= 7 {
+            
    			// check to see that the square immediately ahead of the pawn is free
-   			if board.board[self.pos.x as usize][(self.pos.y + direction) as usize].is_none() {
-                legal_moves.push(Pos {x : self.pos.x, y : (self.pos.y + direction)});
+   			if board[self.pos + Pos {x : 0, y : direction}].is_none() {
                 
+                legal_moves.push(self.pos + Pos {x : 0, y : direction});
+                let s = board[self.pos + Pos {x : 0, y : 0}].as_ref().unwrap().get_pos();
                 // checking eligibility for a double-stride pawn move
                 if self.pos.y == starting_rank {
                     
                     if self.pos.y + (direction * 2) >= 0 && self.pos.y + (direction * 2) <= 7 {
-                        if board.board[self.pos.x as usize][(self.pos.y + direction) as usize].is_none() {
-                            legal_moves.push(Pos {x : self.pos.x, y : (self.pos.y + direction * 2)});
+                        if board[self.pos + Pos {x : 0, y : direction * 2}].is_none() {
+                            legal_moves.push(self.pos + Pos {x : 0, y : direction * 2});
                         }
                     }
                 }  
+                
+            }
+            else {
+                let s = board[self.pos + Pos {x : 0, y : direction}].as_ref().unwrap().get_pos();
             }
    		}
-        self.threat_map(&board)
-        
+        legal_moves        
     }
 }
 impl Piece for Pawn {
@@ -56,6 +63,9 @@ impl Piece for Pawn {
 	}
     fn get_pos(&self) -> Pos {
         self.pos
+    }
+    fn set_pos(&mut self, pos : Pos) {
+        self.pos = pos;
     }
     fn get_type(&self) -> PieceType {
         self.piece_type

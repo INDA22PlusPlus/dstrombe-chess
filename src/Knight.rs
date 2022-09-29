@@ -20,6 +20,9 @@ impl Piece for Knight {
     fn get_pos(&self) -> Pos {
         self.pos
     }
+    fn set_pos(&mut self, pos : Pos) {
+        self.pos = pos;
+    }
     fn get_type(&self) -> PieceType {
         self.piece_type
     }
@@ -37,11 +40,13 @@ impl Piece for Knight {
             let target_pos = self.pos + entry;
             if board.is_within_board(target_pos) {
                 match &board[target_pos] {
+
                    Some(piece) => {
                        if piece.get_color() != self.color {
                            legal_moves.push(target_pos);
                        } 
                    }
+
                    None => {
                        legal_moves.push(target_pos);
                    }
@@ -49,6 +54,7 @@ impl Piece for Knight {
                     
                 }
             }
+            
         }
         legal_moves
     }

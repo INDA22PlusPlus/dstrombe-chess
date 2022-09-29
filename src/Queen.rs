@@ -20,6 +20,9 @@ impl Piece for Queen {
     fn get_pos(&self) -> Pos {
         self.pos
     }
+    fn set_pos(&mut self, pos : Pos) {
+        self.pos = pos;
+    }
     fn get_type(&self) -> PieceType {
         self.piece_type
     }

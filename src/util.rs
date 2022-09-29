@@ -80,9 +80,10 @@ pub fn cast_ray(cast_dir : Pos, cast_range : i8, casting_piece : &Box<&dyn Piece
                 }
                 break;
             }
-            None => {}
+            None => {legal_moves.push(square_to_check);}
         };
-        square_to_check = casting_piece.get_pos() + cast_dir; 
+        square_to_check = square_to_check + cast_dir; 
+        //println!("x {} y {}", cast_dir.x.to_string(), cast_dir.y.to_string() );
     }
     legal_moves
 }
@@ -102,12 +103,13 @@ pub fn do_straight_move_check(piece : &Box<&dyn Piece>, board : &Board) -> Vec<P
 }
 
 pub fn do_diag_move_check(piece : &Box<&dyn Piece>, board : &Board) -> Vec<Pos> {
+
     let mut legal_moves : Vec<Pos> = Vec::new();
     let mut moves_right = cast_ray(Pos {x : 1, y : 1}, i8::MAX, piece, &board); 
     let mut moves_left = cast_ray(Pos {x : -1, y : 1}, i8::MAX, piece, &board); 
-    let mut moves_up = cast_ray(Pos {x : 1, y : -1}, i8::MAX, piece, &board); 
-    let mut moves_down = cast_ray(Pos {x : 1, y : -1}, i8::MAX, piece, &board); 
-    
+    let mut moves_up = cast_ray(Pos {x : -1, y : -1}, i8::MAX, piece, &board); 
+    let mut moves_down = cast_ray(Pos {x : 1, y : -1}, i8::MAX, piece, &board);
+ 
     legal_moves.append(&mut moves_right);
     legal_moves.append(&mut moves_left);
     legal_moves.append(&mut moves_up);

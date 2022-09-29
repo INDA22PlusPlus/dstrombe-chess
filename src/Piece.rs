@@ -31,6 +31,9 @@ pub trait Piece {
     // returns : piece position
     fn get_pos(&self) -> Pos;
 
+    // set piece position
+    fn set_pos(&mut self, pos : Pos);
+
     // LIDL downcasting, since rust doesn't support it
     // could not think up any better solution
     fn get_type(&self) -> PieceType;
@@ -89,6 +92,9 @@ impl Piece for Box<dyn Piece> {
         self.as_ref().get_pos()
     }
 
+    fn set_pos(&mut self, pos : Pos) {
+       self.as_mut().set_pos(pos);
+    }
     // LIDL downcasting, since rust doesn't support it
     // could not think up any better solution
     fn get_type(&self) -> PieceType {

@@ -20,15 +20,18 @@ impl Piece for Rook {
     fn get_pos(&self) -> Pos {
         self.pos
     }
+    fn set_pos(&mut self, pos : Pos) {
+        self.pos = pos;
+    }
     fn get_type(&self) -> PieceType {
         self.piece_type
     }
 
     // the plan is to check each of the 4 directions that the rook can move
     fn legal_moves(&self, board : &Board) -> Vec<Pos> {
-        
         let legal_moves =  self.threat_map(&board).into_iter().filter(|m| !board.move_causes_self_check(self as &dyn Piece, (m.clone()), None));
-        legal_moves.collect::<Vec<Pos>>()
+        let z = legal_moves.collect::<Vec<Pos>>();
+        z
     }
    	fn threat_map(&self, board : &Board) -> Vec<Pos> {
    		let mut legal_moves : Vec<Pos> = do_straight_move_check(&Box::new(self as &dyn Piece), &board);

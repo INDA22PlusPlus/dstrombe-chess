@@ -76,22 +76,21 @@ impl Board {
     }
     
     pub fn print(&self, highlight: Option<Vec<Pos>>) -> String {
+
         let mut built : String = "".to_string();
         built.push_str(&format!("Turn {}\n", self.move_cnt));
-        
+        let mut y : i8 = 0;
         for row in &self.board {
-            for square in row {/* 
-                if(is_some(highlight)) {
-                    if highlight.unwrap().contains() {
-                        built.push_str("o ");
-                        continue;
-                    }
-                }*/
+            let mut x : i8 = 0;
+            for square in row {
+
                 match square {
                     
                     None => {built.push_str("  ");}, 
                     Some(piece) => {
+                        let s = piece.get_pos();
                         match piece.get_color() {
+                            
                             Color::White => {
                                 match piece.get_type() {
                                     PieceType::Pawn => {
@@ -139,7 +138,18 @@ impl Board {
                         };
                     }
                 };
+                if((highlight).as_ref().is_some()) {
+                    if highlight.as_ref().unwrap().contains(&Pos {x, y}) {
+                        built.push_str("o");
+
+                    }
+                    else {
+                        built.push_str("x");
+                    }
+                }
+                x = x +1;
             }
+            y = y + 1;
             built.push_str("\n");
         }
         built
@@ -152,25 +162,33 @@ impl Board {
     pub fn move_causes_self_check(&self, piece : &dyn Piece, attempt : Pos, promotion : Option<PieceType>) -> bool {
         let mut copy = self.clone();
         copy.perform_move(piece.get_pos(), attempt, promotion);
-        copy.is_check_for(piece.get_color())
+        let z = copy.is_check_for(piece.get_color());
+        z
     }
     
     pub fn is_check_for(&self, color : Color) -> bool {
         let king = self.get_king(color);
+
         for row in &self.board {
             for square in row {
+
                 match square {
                     None => {}, 
                     Some(piece) => {
                         if piece.get_color() != color {
-                            if piece.threat_map(self).contains(&king.get_pos()){
+                            let tm = piece.threat_map(self);
+                            if tm.contains(&king.get_pos()){
                                 return true;
                             }
+
                         }
                     }
-                }
+                };
             }
+
+
         }
+
         false
     }
     
@@ -181,25 +199,30 @@ impl Board {
 //
   //  } 
     pub fn get_possible_moves_at_square(&self, pos : Pos) -> Vec<Pos> {
-        match &self[pos] {
+
+        let a = match &self[pos] {
             None => Vec::new(),
-            Some(piece) => piece.legal_moves(&self)
-        }
+            Some(piece) => {
+                piece.legal_moves(&self)
+            }
+        };
+        a
     }
     
     pub fn perform_move(&mut self, from : Pos, to : Pos,  promotion : Option<PieceType>) -> Result<(), &'static str>{
         let mut from_piece = self[from].as_ref();
         let mut captured_piece = self[to].clone();
-        
+
         if !from_piece.is_some() {
             return Err("from is None, impossible board state");
         }
-        if !(from_piece.unwrap().legal_moves(&self).contains(&to)) {
-            return Err("Illegal move");
-        }
+        //if !(from_piece.unwrap().legal_moves(&self).contains(&to)) {
+        //    return Err("Illegal move");
+        //}
+
         // check if we are promoting
         let promoted = (to.y == 7 || to.x == 0) && from_piece.unwrap().get_type() == PieceType::Pawn;
-        
+
         // keep track of en-passant
         let ep_square = match from_piece.unwrap().get_type() == PieceType::Pawn {
             true => {
@@ -215,7 +238,7 @@ impl Board {
         };
 
         let delta_ep_target_square = (self.en_passant_target_square.clone(), ep_square);
-        
+
 
         self.move_cnt += 1;
         self.fiftymove_counter += 1; // FIXME
@@ -227,13 +250,14 @@ impl Board {
 
         if promoted && promotion.is_some() {
             let promotion_piece : Option<Box<dyn Piece>>;
-            match(promotion.unwrap()) {
-                PieceType::Pawn   =>  return Err("Cannot promote to a pawn"),
-                PieceType::Knight =>  { promotion_piece = Some(Box::new(Knight::new(from_piece.unwrap().get_color(), to))); },
-                PieceType::Bishop =>  { promotion_piece = Some(Box::new(Bishop::new(from_piece.unwrap().get_color(), to))); },
-                PieceType::Rook   =>  { promotion_piece = Some(Box::new(Rook::new(from_piece.unwrap().get_color(), to))); },
-                PieceType::Queen  =>  { promotion_piece = Some(Box::new(Queen::new(from_piece.unwrap().get_color(), to))); },
-                PieceType::King   =>  { promotion_piece = Some(Box::new(King::new(from_piece.unwrap().get_color(), to))); },
+            match(promotion) {
+                Some(PieceType::Pawn)   =>  return Err("Cannot promote to a pawn"),
+                Some(PieceType::Knight) =>  { promotion_piece = Some(Box::new(Knight::new(from_piece.unwrap().get_color(), to))); },
+                Some(PieceType::Bishop) =>  { promotion_piece = Some(Box::new(Bishop::new(from_piece.unwrap().get_color(), to))); },
+                Some(PieceType::Rook)   =>  { promotion_piece = Some(Box::new(Rook::new(from_piece.unwrap().get_color(), to))); },
+                Some(PieceType::Queen)  =>  { promotion_piece = Some(Box::new(Queen::new(from_piece.unwrap().get_color(), to))); },
+                Some(PieceType::King)   =>  { promotion_piece = Some(Box::new(King::new(from_piece.unwrap().get_color(), to))); },
+                None => { promotion_piece = Some(Box::new(Queen::new(from_piece.unwrap().get_color(), to))); },
             };
             self[to] = promotion_piece.clone();
 
@@ -241,7 +265,7 @@ impl Board {
         else {
             self[to] = from_piece.clone();
         }
-
+        self[to].as_mut().unwrap().set_pos(to);
         self[from] = None;
         Ok(())
         //generated_history
@@ -348,15 +372,17 @@ impl Board {
                         // in FEN
                         curr_square.x -= 1;
                         let skip = (c as i32 - 49) as i8; // ascii ints range from 48-57
-                        curr_square.x += skip;
                         for z in 0..skip {
                             rank_to_add.push(None);
+                            curr_square.x += 1;
+
                         }
                         None
                     }
                     _ => panic!("invalid FEN board configuration"),
                 };
                 rank_to_add.push(square);
+
                 curr_square.x += 1;
             }
             board.push(rank_to_add);
@@ -430,7 +456,7 @@ impl Board {
     }
     pub fn is_within_board(&self, pos : Pos) -> bool {
         let size = self.get_size();
-        return pos.x >= 0 && pos.y >= 0 && pos.x <= size.x && pos.y <= size.y
+        return pos.x >= 0 && pos.y >= 0 && pos.x < size.x && pos.y < size.y
     }
     
 }
@@ -451,13 +477,13 @@ impl Index<Pos> for Board {
     type Output = Option<Box<dyn Piece>>;
     
     fn index(&self, pos : Pos) -> &Self::Output {
-        &self.board[pos.x as usize][pos.y as usize]
+        &self.board[pos.y as usize][pos.x as usize]
     }
 }
 
 impl IndexMut<Pos> for Board {
     fn index_mut(&mut self, pos : Pos) -> &mut Self::Output {
-        &mut self.board[pos.x as usize][pos.y as usize]
+        &mut self.board[pos.y as usize][pos.x as usize]
     }
 }
 
