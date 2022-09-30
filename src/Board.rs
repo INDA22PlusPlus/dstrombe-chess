@@ -268,7 +268,7 @@ impl Board {
         }
         self[to].as_mut().unwrap().set_pos(to);
         self[from] = None;
-
+        println!("{}",self.print(None));
         Ok(())
         //generated_history
     }
