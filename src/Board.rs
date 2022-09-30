@@ -222,7 +222,7 @@ impl Board {
         //}
 
         // check if we are promoting
-        let promoted = (to.y == 7 || to.x == 0) && from_piece.unwrap().get_type() == PieceType::Pawn;
+        let promoted = (to.y == 7 || to.y == 0) && from_piece.unwrap().get_type() == PieceType::Pawn;
 
         // keep track of en-passant
         let ep_square = match from_piece.unwrap().get_type() == PieceType::Pawn {
@@ -249,7 +249,7 @@ impl Board {
         };
         let from_piece = self[from].clone();
 
-        if promoted && promotion.is_some() {
+        if promoted {
             let promotion_piece : Option<Box<dyn Piece>>;
             match(promotion) {
                 Some(PieceType::Pawn)   =>  return Err("Cannot promote to a pawn"),
