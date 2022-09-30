@@ -268,6 +268,7 @@ impl Board {
         }
         self[to].as_mut().unwrap().set_pos(to);
         self[from] = None;
+        println!("moving from x{}y{} to x{}y{}", from.x, from.y, to.x, to.y);
         println!("{}",self.print(None));
         Ok(())
         //generated_history
