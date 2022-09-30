@@ -162,13 +162,14 @@ impl Board {
     pub fn move_causes_self_check(&self, piece : &dyn Piece, attempt : Pos, promotion : Option<PieceType>) -> bool {
         let mut copy = self.clone();
         copy.perform_move(piece.get_pos(), attempt, promotion);
+
         let z = copy.is_check_for(piece.get_color());
-        z && self.turn != piece.get_color() 
+        z || self.turn != piece.get_color() 
     }
     
     pub fn is_check_for(&self, color : Color) -> bool {
         let king = self.get_king(color);
-
+        
         for row in &self.board {
             for square in row {
 
@@ -238,8 +239,8 @@ impl Board {
         };
 
         let delta_ep_target_square = (self.en_passant_target_square.clone(), ep_square);
-
-
+        
+        
         self.move_cnt += 1;
         self.fiftymove_counter += 1; // FIXME
         self.turn = match self.turn {
@@ -267,6 +268,7 @@ impl Board {
         }
         self[to].as_mut().unwrap().set_pos(to);
         self[from] = None;
+
         Ok(())
         //generated_history
     }

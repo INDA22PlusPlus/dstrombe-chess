@@ -36,12 +36,11 @@ impl Piece for King {
         for i in 0..9 {
             let y = i / 3;
             let x = i % 3;
-            let target = Pos {x : x as i8, y : y as i8};
+            let target = self.pos + Pos {x : x as i8 - 1, y : y as i8 - 1};
             if board.is_within_board(target) {
-                // FIXME: disallow moving to threatened squares
                 match &board[target] {
                     Some(piece) => {
-                        if piece.get_color() == self.color {
+                        if piece.get_color() != self.color && target != self.pos {
                             legal_moves.push(target);
                         }
                     }
